@@ -13,6 +13,26 @@ import zipfile
 ROOT = Path(__file__).resolve().parents[2]
 
 
+def runtime_licenses(destination, platform):
+    sysroot = Path(subprocess.check_output(["rustc", "--print", "sysroot"], text=True).strip())
+    rust_notice = sysroot / "share/doc/rust/COPYRIGHT-library.html"
+    if not rust_notice.is_file():
+        raise RuntimeError("Rust standard-library copyright notice is missing")
+    destination.mkdir(parents=True, exist_ok=True)
+    shutil.copy2(rust_notice, destination / "Rust-standard-library-COPYRIGHT.html")
+    source = ROOT / "scripts/release/runtime-licenses"
+    names = []
+    if platform.startswith("linux-"):
+        names += ["musl-COPYRIGHT.txt"]
+    if platform.startswith(("windows-", "linux-")):
+        names += ["GCC-COPYING3.txt", "GCC-RUNTIME-EXCEPTION.txt"]
+    if platform.startswith("windows-"):
+        names += ["MinGW-COPYING.MinGW-w64-runtime.txt"]
+    for name in names:
+        shutil.copy2(source / name, destination / name)
+    shutil.copy2(source / "sources.json", destination / "runtime-license-sources.json")
+
+
 def dependency_licenses(destination, target, features):
     command = ["cargo", "metadata", "--format-version", "1", "--locked", "--filter-platform", target]
     if features:
@@ -90,6 +110,7 @@ def main():
         encoding="utf-8",
     )
     dependency_licenses(licenses, args.target, args.features)
+    runtime_licenses(licenses, args.platform)
     if suffix:
         archive = output / f"{name}.zip"
         with zipfile.ZipFile(archive, "w", zipfile.ZIP_DEFLATED) as zip:

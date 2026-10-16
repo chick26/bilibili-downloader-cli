@@ -1,0 +1,6 @@
+{
+  "musl-COPYRIGHT.txt": "https://git.musl-libc.org/cgit/musl/plain/COPYRIGHT?h=v1.2.3",
+  "GCC-COPYING3.txt": "https://raw.githubusercontent.com/gcc-mirror/gcc/releases/gcc-15.1.0/COPYING3",
+  "GCC-RUNTIME-EXCEPTION.txt": "https://raw.githubusercontent.com/gcc-mirror/gcc/releases/gcc-15.1.0/COPYING.RUNTIME",
+  "MinGW-COPYING.MinGW-w64-runtime.txt": "https://raw.githubusercontent.com/mingw-w64/mingw-w64/v13.0.0/COPYING.MinGW-w64-runtime/COPYING.MinGW-w64-runtime.txt"
+}
