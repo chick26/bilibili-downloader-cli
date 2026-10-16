@@ -67,6 +67,8 @@ struct SearchPage {
 #[derive(Default, Deserialize)]
 #[serde(default)]
 struct SearchEntry {
+    #[serde(rename = "type")]
+    result_type: String,
     id: i64,
     mid: i64,
     uname: String,
@@ -173,14 +175,26 @@ fn normalize(entry: SearchEntry, kind: KeywordSearchType) -> eyre::Result<Keywor
             url: format!("https://space.bilibili.com/{}", entry.mid),
         },
         KeywordSearchType::Video => {
-            let (bvid, url) = video_reference(&entry.bvid, entry.id);
+            // Search may include courses whose `id` is a course ID, not an AV ID.
+            let is_video = entry.result_type == "video";
+            let (bvid, url) = if is_video {
+                video_reference(&entry.bvid, entry.id)
+            } else {
+                (None, None)
+            };
             let downloadable = url.is_some();
             KeywordSearchItem::Video {
                 url,
                 bvid,
-                aid: (entry.id > 0).then_some(entry.id),
+                aid: (is_video && entry.id > 0).then_some(entry.id),
                 downloadable,
-                unavailable_reason: (!downloadable).then(|| "缺少有效视频 ID".into()),
+                unavailable_reason: (!downloadable).then(|| {
+                    if is_video {
+                        "缺少有效视频 ID".into()
+                    } else {
+                        "非普通视频条目（如课程），请使用对应的完整内容 URL 查询".into()
+                    }
+                }),
                 title: plain_text(&entry.title),
                 author: plain_text(&entry.author),
                 uid: entry.mid,

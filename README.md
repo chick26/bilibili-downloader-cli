@@ -67,7 +67,7 @@ bili search 'Rust 入门' --type video --page 1
 bili search 'Rust 入门' --type video --page 2 --json
 ```
 
-`--type user` 返回账号列表，不会自动选中同名账号；选择 UID 后使用 `up videos` 查看投稿。`--type video` 返回视频列表，可将 BV／av 号或结果中的 URL 交给 `info` 或 `download`；缺少有效视频 ID 的条目会标为不可下载。关键词搜索使用 B 站默认相关度排序，每次只获取指定页；表格和 JSON 输出均支持。
+`--type user` 返回账号列表，不会自动选中同名账号；选择 UID 后使用 `up videos` 查看投稿。`--type video` 返回视频列表，可将 BV／av 号或结果中的 URL 交给 `info` 或 `download`；缺少有效视频 ID 的条目会标为不可下载。搜索混入的课程等非普通视频条目不会按 AV 号回退，需提供对应的完整内容 URL 查询。关键词搜索使用 B 站默认相关度排序，每次只获取指定页；表格和 JSON 输出均支持。
 
 已知 UID 时，沿用原 GUI 的查询方式浏览投稿，再选择结果中的 BV 号交给下载命令：
 

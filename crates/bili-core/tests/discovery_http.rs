@@ -189,10 +189,10 @@ async fn keyword_search_signs_queries_keeps_the_session_and_normalizes_results()
         let entry = if kind == KeywordSearchType::User {
             json!({"mid":123,"uname":"<em class=\"keyword\">Rust</em> &amp; CLI", "fans":99,"videos":12})
         } else {
-            json!({"mid":123,"bvid":"BV17x411w7KC","title":"<em class=\"keyword\">Rust</em> &amp; &lt;CLI&gt;", "author":"Local UP","duration":"1:30"})
+            json!({"type":"video","mid":123,"bvid":"BV17x411w7KC","title":"<em class=\"keyword\">Rust</em> &amp; &lt;CLI&gt;", "author":"Local UP","duration":"1:30"})
         };
         let entries = if kind == KeywordSearchType::Video {
-            json!([entry, {"id":170001,"mid":123,"bvid":"","title":"AV fallback"}, {"mid":123,"title":"Missing ID"}])
+            json!([entry, {"type":"video","id":170001,"mid":123,"bvid":"","title":"AV fallback"}, {"type":"video","mid":123,"title":"Missing ID"}, {"type":"ketang","id":34170,"mid":123,"title":"Course"}])
         } else {
             json!([entry])
         };
@@ -255,6 +255,9 @@ async fn keyword_search_signs_queries_keeps_the_session_and_normalizes_results()
             );
             assert_eq!(public["items"][1]["downloadable"], true);
             assert_eq!(public["items"][2]["downloadable"], false);
+            assert_eq!(public["items"][3]["downloadable"], false);
+            assert!(public["items"][3]["aid"].is_null());
+            assert!(public["items"][3]["url"].is_null());
             assert_eq!(
                 MediaTarget::parse(item["url"].as_str().unwrap()).unwrap(),
                 MediaTarget::parse("BV17x411w7KC").unwrap()
