@@ -14,7 +14,7 @@ ROOT = Path(__file__).resolve().parents[2]
 
 
 def run(command, env, **kwargs):
-    return subprocess.run([str(item) for item in command], env=env, check=True, capture_output=True, text=True, **kwargs)
+    return subprocess.run([str(item) for item in command], env=env, check=True, capture_output=True, text=True, encoding="utf-8", **kwargs)
 
 
 def main():

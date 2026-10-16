@@ -19,7 +19,11 @@ esac
   --enable-demuxer=mov,ffmetadata --enable-muxer=mp4,mov \
   --enable-parsers --enable-bsf=aac_adtstoasc,extract_extradata,av1_frame_merge \
   "${extra[@]}"
-make -j"${JOBS:-4}" ffmpeg
+program=ffmpeg
+if [[ "$platform" == windows-* ]]; then
+  program=ffmpeg.exe
+fi
+make -j"${JOBS:-4}" "$program"
 mkdir -p "$root/build/ffmpeg-bin"
 if [[ "$platform" == windows-* ]]; then
   cp ffmpeg.exe "$root/build/ffmpeg-bin/ffmpeg.exe"
