@@ -6,7 +6,9 @@ use crate::format::{display_width, format_bytes, sanitize, truncate, wrap};
 pub fn render_result(result: &Value, width: usize) -> String {
     let width = width.max(24);
     let mut lines = Vec::new();
-    if result.get("authenticated").is_some() {
+    if result.get("search_type").is_some() {
+        render_search(result, width, &mut lines);
+    } else if result.get("authenticated").is_some() {
         render_auth(result, &mut lines);
     } else if let Some(task) = result.get("task") {
         lines.push("任务详情 · 磁盘快照".into());
@@ -27,6 +29,106 @@ pub fn render_result(result: &Value, width: usize) -> String {
         lines.push("操作完成。使用 --json 查看结构化结果。".into());
     }
     lines.join("\n")
+}
+
+fn render_search(result: &Value, width: usize, lines: &mut Vec<String>) {
+    let is_user = result["search_type"].as_str() == Some("user");
+    let kind = if is_user { "UP" } else { "视频" };
+    let keyword = text(result, "keyword");
+    let page = result["page"].as_u64().unwrap_or(1);
+    let page_size = result["page_size"].as_u64().unwrap_or(20);
+    let items = array(result, "items");
+    lines.push(fit(&format!("搜索{kind} · {keyword}"), width));
+    lines.push(format!(
+        "共 {} 条 · 第 {page} 页 · 本页 {} 条",
+        number(result, "total"),
+        items.len()
+    ));
+    lines.push(String::new());
+    let wide = width >= 72;
+    if items.is_empty() {
+        lines.push("没有匹配结果。".into());
+    } else if wide {
+        lines.push(if is_user {
+            format!("{}  {}  名称", pad("序号", 4), pad("UID", 20))
+        } else {
+            format!(
+                "{}  {}  {}  标题",
+                pad("序号", 4),
+                pad("时长", 8),
+                pad("视频ID", 20)
+            )
+        });
+        lines.push("─".repeat(width));
+    }
+    let offset = page.saturating_sub(1).saturating_mul(page_size);
+    for (index, item) in items.iter().enumerate() {
+        let ordinal = offset.saturating_add(index as u64).saturating_add(1);
+        let reference = if is_user {
+            number(item, "uid")
+        } else if let Some(bvid) = item["bvid"].as_str() {
+            bvid.into()
+        } else if let Some(aid) = item["aid"].as_i64() {
+            format!("av{aid}")
+        } else {
+            "—".into()
+        };
+        let title = text(item, if is_user { "name" } else { "title" });
+        let title = if item["downloadable"].as_bool() == Some(false) {
+            format!("[不可下载] {title}")
+        } else {
+            title
+        };
+        let duration = duration(&item["duration"], false);
+        if wide && is_user {
+            lines.push(format!(
+                "{ordinal:>4}  {}  {}",
+                pad(&reference, 20),
+                fit(&title, width.saturating_sub(28))
+            ));
+        } else if wide {
+            lines.push(format!(
+                "{ordinal:>4}  {}  {}  {}",
+                pad(&duration, 8),
+                pad(&reference, 20),
+                fit(&title, width.saturating_sub(38))
+            ));
+        } else {
+            lines.push(fit(&format!("{ordinal}. {title}"), width));
+            lines.push(if is_user {
+                format!("   UID {reference}")
+            } else {
+                format!("   {duration} · {reference}")
+            });
+        }
+        let detail = if is_user {
+            format!(
+                "粉丝 {} · 投稿 {}",
+                number(item, "fans"),
+                number(item, "video_count")
+            )
+        } else {
+            format!("UP：{} · UID {}", text(item, "author"), number(item, "uid"))
+        };
+        lines.push(format!("   {}", fit(&detail, width.saturating_sub(3))));
+    }
+    if is_user && let Some(first) = items.first() {
+        lines.push(String::new());
+        lines.push(format!("查看投稿：bili up videos {}", number(first, "uid")));
+    } else if let Some(source) = items.iter().find_map(download_source) {
+        lines.push(String::new());
+        lines.push(format!("下载：bili download {}", shell_arg(&source)));
+    }
+    if result["has_more"].as_bool() == Some(true) {
+        lines.push(format!(
+            "下一页：bili search {} --type {} --page {}",
+            shell_arg(&keyword),
+            if is_user { "user" } else { "video" },
+            page.saturating_add(1)
+        ));
+    } else {
+        lines.push("已到最后一页。".into());
+    }
 }
 
 fn render_auth(result: &Value, lines: &mut Vec<String>) {
@@ -526,6 +628,55 @@ fn shell_arg(value: &str) -> String {
 mod tests {
     use super::*;
     use serde_json::json;
+
+    #[test]
+    fn keyword_search_preserves_ids_and_quotes_the_next_page_command() {
+        for width in [32, 80] {
+            let rendered = render_result(
+                &json!({
+                    "search_type":"user","keyword":"Rust's 频道", "page":2,"page_size":20,"total":60,"has_more":true,
+                    "items":[{"uid":1234567890123_i64,"name":"很长的中文账号名称需要按终端宽度显示", "fans":100,"video_count":12}]
+                }),
+                width,
+            );
+            assert!(rendered.contains("搜索UP"));
+            assert!(rendered.contains("21"));
+            assert!(rendered.contains("1234567890123"));
+            assert!(rendered.contains("查看投稿：bili up videos 1234567890123"));
+            assert!(rendered.contains("bili search 'Rust'\\''s 频道' --type user --page 3"));
+            assert!(!rendered.contains("bili download"));
+            let rendered = render_result(
+                &json!({
+                    "search_type":"video","keyword":"Rust", "page":1,"page_size":20,"total":1,"has_more":false,
+                "items":[{"bvid":"BV17x411w7KC","title":"入门视频","duration":"1:30","author":"UP","uid":123,"downloadable":true}]
+                }),
+                width,
+            );
+            assert!(rendered.contains("搜索视频"));
+            assert!(rendered.contains("下载：bili download BV17x411w7KC"));
+            assert!(!rendered.contains("下一页"));
+            let rendered = render_result(
+                &json!({
+                    "search_type":"video","keyword":"Rust","page":1,"total":2,"items":[
+                        {"title":"无有效 ID","downloadable":false},
+                        {"title":"仅有 AV 号","aid":170001,"bvid":null,"url":"https://www.bilibili.com/video/av170001","downloadable":true}
+                    ]
+                }),
+                width,
+            );
+            assert!(rendered.contains("[不可下载]"));
+            assert!(rendered.contains("av170001"));
+            assert!(
+                rendered.contains("下载：bili download https://www.bilibili.com/video/av170001")
+            );
+        }
+        let rendered = render_result(
+            &json!({"search_type":"user","keyword":"空","page":1,"total":0,"items":[]}),
+            80,
+        );
+        assert!(rendered.contains("没有匹配结果"));
+        assert!(!rendered.contains("bili up videos"));
+    }
 
     #[test]
     fn narrow_discovery_keeps_complete_ids_and_suggests_the_correct_next_page() {

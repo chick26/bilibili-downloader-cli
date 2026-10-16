@@ -9,6 +9,7 @@ pub mod downloader;
 pub mod errors;
 pub mod events;
 pub mod extensions;
+pub mod keyword_search;
 pub mod media_transfer;
 pub mod plugin;
 pub mod runtime;

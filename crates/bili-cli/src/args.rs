@@ -27,8 +27,8 @@ pub struct Cli {
 
 #[derive(Debug, Subcommand)]
 pub enum Command {
-    /// 通过视频 ID、uid…、fid… 或 B站 URL 查找内容
-    Search(PageSourceArgs),
+    /// 通过 ID／URL 查找内容；加 --type user/video 搜索关键词
+    Search(SearchArgs),
     /// 浏览 UP 投稿
     Up {
         #[command(subcommand)]
@@ -63,6 +63,21 @@ pub struct PageSourceArgs {
     /// 页码，从 1 开始；仅获取指定页
     #[arg(long, default_value_t = 1, value_parser = clap::value_parser!(u32).range(1..))]
     pub page: u32,
+}
+
+#[derive(Debug, Args)]
+pub struct SearchArgs {
+    #[command(flatten)]
+    pub source: PageSourceArgs,
+    /// 关键词搜索类型：user 为 UP，video 为视频；省略时按 ID／URL 解析
+    #[arg(long = "type", value_enum)]
+    pub search_type: Option<SearchType>,
+}
+
+#[derive(Debug, Clone, Copy, ValueEnum)]
+pub enum SearchType {
+    User,
+    Video,
 }
 
 #[derive(Debug, Subcommand)]

@@ -195,7 +195,7 @@ pub async fn discover(
     }
 }
 
-fn video_reference(bvid: &str, aid: i64) -> (Option<String>, Option<String>) {
+pub(crate) fn video_reference(bvid: &str, aid: i64) -> (Option<String>, Option<String>) {
     if let Ok(MediaTarget::Normal {
         id: NormalId::Bvid(id),
         ..

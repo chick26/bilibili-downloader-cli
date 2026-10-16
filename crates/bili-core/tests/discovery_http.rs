@@ -179,6 +179,143 @@ fn runtime_with_api(base: Url) -> (std::path::PathBuf, Runtime) {
 }
 
 #[tokio::test]
+async fn keyword_search_signs_queries_keeps_the_session_and_normalizes_results() {
+    use bili_core::keyword_search::{KeywordSearchType, search};
+
+    for kind in [KeywordSearchType::User, KeywordSearchType::Video] {
+        let mut nav = wbi_response();
+        nav["data"]["isLogin"] = json!(true);
+        nav["data"]["mid"] = json!(77);
+        let entry = if kind == KeywordSearchType::User {
+            json!({"mid":123,"uname":"<em class=\"keyword\">Rust</em> &amp; CLI", "fans":99,"videos":12})
+        } else {
+            json!({"mid":123,"bvid":"BV17x411w7KC","title":"<em class=\"keyword\">Rust</em> &amp; &lt;CLI&gt;", "author":"Local UP","duration":"1:30"})
+        };
+        let entries = if kind == KeywordSearchType::Video {
+            json!([entry, {"id":170001,"mid":123,"bvid":"","title":"AV fallback"}, {"mid":123,"title":"Missing ID"}])
+        } else {
+            json!([entry])
+        };
+        let (base, server) = mock_api(vec![
+            nav,
+            json!({"code":0,"data":{"b_3":"SYNTHETIC-VISITOR"}}),
+            json!({"code":0,"data":{"pagesize":20,"numResults":60,"numPages":3,"result":entries}}),
+        ])
+        .await;
+        let (data_dir, runtime) = runtime_with_api(base);
+        runtime.context().get_config().write().sessdata = "synthetic-search-session".into();
+        let result = search(
+            &runtime.context().get_bili_client(),
+            "  Rust's & CLI  ",
+            kind,
+            2,
+        )
+        .await
+        .unwrap();
+        let requests = server.await.unwrap();
+        assert_eq!(requests.len(), 3);
+        assert_eq!(requests[0].url.path(), "/x/web-interface/nav");
+        assert_eq!(requests[1].url.path(), "/x/frontend/finger/spi");
+        assert_eq!(requests[2].url.path(), "/x/web-interface/wbi/search/type");
+        let query = requests[2].query();
+        assert_eq!(query["keyword"], "Rusts & CLI");
+        assert_eq!(query["page"], "2");
+        assert_eq!(
+            query["search_type"],
+            if kind == KeywordSearchType::User {
+                "bili_user"
+            } else {
+                "video"
+            }
+        );
+        assert_eq!(query["w_rid"].len(), 32);
+        assert!(requests[2].cookie().contains("buvid3=SYNTHETIC-VISITOR"));
+        assert!(
+            requests[2]
+                .cookie()
+                .contains("SESSDATA=synthetic-search-session")
+        );
+        assert!(requests[2].cookie().contains("DedeUserID=77"));
+        assert_eq!(result.page, 2);
+        assert_eq!(result.page_size, 20);
+        assert_eq!(result.total, 60);
+        assert!(result.has_more);
+        let public = serde_json::to_value(result).unwrap();
+        let item = &public["items"][0];
+        assert_eq!(item["uid"], 123);
+        if kind == KeywordSearchType::User {
+            assert_eq!(item["name"], "Rust & CLI");
+            assert_eq!(item["url"], "https://space.bilibili.com/123");
+            assert_eq!(item["video_count"], 12);
+        } else {
+            assert_eq!(item["title"], "Rust & <CLI>");
+            assert_eq!(
+                public["items"][1]["url"],
+                "https://www.bilibili.com/video/av170001"
+            );
+            assert_eq!(public["items"][1]["downloadable"], true);
+            assert_eq!(public["items"][2]["downloadable"], false);
+            assert_eq!(
+                MediaTarget::parse(item["url"].as_str().unwrap()).unwrap(),
+                MediaTarget::parse("BV17x411w7KC").unwrap()
+            );
+        }
+        assert!(!public.to_string().contains("SYNTHETIC-VISITOR"));
+        assert!(!public.to_string().contains("synthetic-search-session"));
+        runtime.shutdown().await.unwrap();
+        std::fs::remove_dir_all(data_dir).unwrap();
+    }
+}
+
+#[tokio::test]
+async fn keyword_search_returns_empty_results_and_stops_on_risk_control() {
+    use bili_core::keyword_search::{KeywordSearchType, search};
+
+    for failure in [None, Some(0), Some(1), Some(2)] {
+        let mut responses = vec![MockResponse::json(wbi_response())];
+        if failure == Some(0) {
+            responses.push(MockResponse::risk_control());
+        } else {
+            responses.push(MockResponse::json(
+                json!({"code":0,"data":{"b_3":"SYNTHETIC-VISITOR"}}),
+            ));
+            responses.push(match failure {
+                Some(1) => MockResponse::risk_control(),
+                Some(2) => MockResponse::json(json!({"code":-352,"message":"PRIVATE_RESPONSE_MARKER"})),
+                _ => MockResponse::json(json!({"code":0,"data":{"pagesize":20,"numResults":0,"numPages":0,"result":null}})),
+            });
+        }
+        let (base, server) = mock_http_api(responses, failure.is_some()).await;
+        let (data_dir, runtime) = runtime_with_api(base);
+        let result = search(
+            &runtime.context().get_bili_client(),
+            "不存在的用户",
+            KeywordSearchType::User,
+            1,
+        )
+        .await;
+        let requests = server.await.unwrap();
+        assert_eq!(requests.len(), if failure == Some(0) { 2 } else { 3 });
+        if failure.is_some() {
+            let error = result.unwrap_err();
+            assert!(
+                error
+                    .downcast_ref::<BiliApiError>()
+                    .unwrap()
+                    .is_risk_control()
+            );
+            assert!(!error.to_string().contains("PRIVATE_"));
+        } else {
+            let result = result.unwrap();
+            assert!(result.items.is_empty());
+            assert!(!result.has_more);
+        }
+        runtime.shutdown().await.unwrap();
+        std::fs::remove_dir_all(data_dir).unwrap();
+    }
+}
+
+#[tokio::test]
 async fn up_discovery_issues_signed_paginated_request_and_returns_download_input() {
     let (base, server) = mock_api(vec![
         wbi_response(),

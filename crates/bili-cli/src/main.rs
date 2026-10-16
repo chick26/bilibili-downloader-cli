@@ -353,8 +353,9 @@ mod tests {
         let Command::Search(args) = cli.command else {
             panic!("wrong command")
         };
-        assert_eq!(args.source, "uid123");
-        assert_eq!(args.page, 2);
+        assert_eq!(args.source.source, "uid123");
+        assert_eq!(args.source.page, 2);
+        assert!(args.search_type.is_none());
 
         let cli = Cli::try_parse_from(["bili", "up", "videos", "123", "--page", "3"]).unwrap();
         let Command::Up {
@@ -382,6 +383,42 @@ mod tests {
         };
         assert_eq!(args.source, "456");
         assert_eq!(args.page, 1);
+    }
+
+    #[test]
+    fn keyword_search_dispatches_explicit_types_and_pagination() {
+        for kind in ["user", "video"] {
+            let cli = Cli::try_parse_from([
+                "bili",
+                "search",
+                "影视飓风",
+                "--type",
+                kind,
+                "--page",
+                "2",
+                "--json",
+            ])
+            .unwrap();
+            assert!(cli.json);
+            let Some(discovery::Request::Keyword {
+                keyword,
+                kind: parsed,
+                page,
+            }) = discovery::Request::from_command(&cli.command).unwrap()
+            else {
+                panic!("keyword request expected")
+            };
+            assert_eq!(keyword, "影视飓风");
+            assert_eq!(page, 2);
+            assert_eq!(
+                parsed,
+                if kind == "user" {
+                    bili_core::keyword_search::KeywordSearchType::User
+                } else {
+                    bili_core::keyword_search::KeywordSearchType::Video
+                }
+            );
+        }
     }
 
     #[test]

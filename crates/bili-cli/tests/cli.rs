@@ -132,6 +132,7 @@ fn malformed_source_is_rejected_before_network_access() {
 #[test]
 fn discovery_rejects_invalid_ids_and_foreign_urls_before_starting_runtime() {
     let cases: &[&[&str]] = &[
+        &["search", "   ", "--type", "user"],
         &["search", "uid0"],
         &["search", "fid-1"],
         &["search", "Rust"],
@@ -164,6 +165,8 @@ fn discovery_rejects_invalid_ids_and_foreign_urls_before_starting_runtime() {
 #[test]
 fn discovery_invalid_pagination_keeps_stdout_json_and_exit_two() {
     for args in [
+        &["search", "Rust", "--type", "video", "--page", "0"][..],
+        &["search", "Rust", "--type", "other"][..],
         &["search", "uid123", "--page", "0"][..],
         &["up", "videos", "123", "--page", "0"][..],
         &["fav", "videos", "456", "--page", "0"][..],

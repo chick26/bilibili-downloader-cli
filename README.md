@@ -59,7 +59,17 @@ bili up videos 504018708 --page 1 --json
 
 ## 查找 UP 与视频
 
-沿用原 GUI 的 UID 查询方式，浏览某个 UP 的投稿，再选择结果中的 BV 号交给下载命令：
+按昵称／关键词搜索 UP 或视频，结果包含可继续查询的 UID 或可下载的视频 ID：
+
+```bash
+bili search '影视飓风' --type user
+bili search 'Rust 入门' --type video --page 1
+bili search 'Rust 入门' --type video --page 2 --json
+```
+
+`--type user` 返回账号列表，不会自动选中同名账号；选择 UID 后使用 `up videos` 查看投稿。`--type video` 返回视频列表，可将 BV／av 号或结果中的 URL 交给 `info` 或 `download`；缺少有效视频 ID 的条目会标为不可下载。关键词搜索使用 B 站默认相关度排序，每次只获取指定页；表格和 JSON 输出均支持。
+
+已知 UID 时，沿用原 GUI 的查询方式浏览投稿，再选择结果中的 BV 号交给下载命令：
 
 ```bash
 # 使用 UP 的 UID；每次只返回指定页
@@ -83,7 +93,7 @@ bili search BV1xx411c7mD --json
 bili search 'https://space.bilibili.com/946974' --page 1 --json
 ```
 
-`search` 接受 `uid…`、`fid…`、BV / av / ep / ss ID 和对应完整 B 站 URL。为避免数字 UID 与收藏夹 ID 混淆，裸数字仅用于明确的 `up videos`、`fav list`、`fav videos` 子命令。
+不带 `--type` 时，`search` 沿用 ID／URL 解析，接受 `uid…`、`fid…`、BV / av / ep / ss ID 和对应完整 B 站 URL；关键词搜索需要显式指定 `--type user` 或 `--type video`。为避免数字 UID 与收藏夹 ID 混淆，裸数字仅用于明确的 `up videos`、`fav list`、`fav videos` 子命令。
 
 收藏夹浏览支持先列某个 UP 的收藏夹，再列指定收藏夹的视频：
 

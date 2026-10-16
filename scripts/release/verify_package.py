@@ -38,6 +38,8 @@ def main():
         env.pop("BILI_DATA_DIR", None)
         run([bili, "--version"], env)
         run([bili, "--help"], env)
+        search_help = run([bili, "search", "--help"], env).stdout
+        assert "--type" in search_help and "user" in search_help and "video" in search_help
         state = temp / "state"
         for command in [["auth", "status"], ["tasks", "list"]]:
             response = run([bili, "--data-dir", state, *command, "--json"], env)
