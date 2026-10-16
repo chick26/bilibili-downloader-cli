@@ -63,7 +63,7 @@ bili resume TASK_ID
 
 便携包中运行上述命令时，macOS / Linux 使用 `./bili`，Windows 使用 `.\bili.exe`。B 站扫码登录需要本人确认，最高画质和受限内容取决于账号权限。Ctrl-C 保存已完成分片，使用打印的任务 ID 恢复。
 
-Agent 和脚本可增加 `--json` 获取单个 JSON 结果。完整参数见 [项目 README](https://github.com/chick26/bilibili-downloader-cli#readme)。
+Agent 和脚本可增加 `--json` 获取单个 JSON 结果。完整参数见 [使用指南](https://github.com/chick26/bilibili-downloader-cli/blob/main/docs/USAGE.md)。
 
 ## 许可与对应源码
 
