@@ -1,0 +1,18 @@
+title = "Bilibili Downloader CLI secret detection"
+
+[extend]
+useDefault = true
+
+[[rules]]
+id = "bilibili-sessdata"
+description = "Bilibili SESSDATA login cookie"
+regex = '''(?i)SESSDATA\s*["']?\s*[:=]\s*["']?([0-9a-f]{8,}(?:%2c|,)[^"'\s;]{12,})'''
+secretGroup = 1
+keywords = ["sessdata"]
+
+[[rules]]
+id = "bilibili-csrf-cookie"
+description = "Bilibili bili_jct authentication cookie"
+regex = '''(?i)bili_jct\s*["']?\s*[:=]\s*["']?([0-9a-f]{32})'''
+secretGroup = 1
+keywords = ["bili_jct"]

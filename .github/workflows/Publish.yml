@@ -1,0 +1,33 @@
+name: Build CLI artifacts
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build-cli:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runner: ubuntu-24.04
+            binary: target/release/bili
+          - runner: windows-latest
+            binary: target/release/bili.exe
+          - runner: macos-latest
+            binary: target/release/bili
+    runs-on: ${{ matrix.runner }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@1.88.0
+      - uses: Swatinem/rust-cache@v2
+      - name: Build CLI
+        run: cargo build --release -p bili-cli --locked
+      - name: Upload CLI binary
+        uses: actions/upload-artifact@v4
+        with:
+          name: bili-${{ runner.os }}-${{ runner.arch }}
+          path: ${{ matrix.binary }}
+          if-no-files-found: error

@@ -1,0 +1,9 @@
+[workspace]
+members = ["crates/bili-core", "crates/bili-cli", "crates/bili-plugin-api"]
+default-members = ["crates/bili-cli"]
+resolver = "2"
+
+[profile.release]
+strip = true
+lto = true
+codegen-units = 1

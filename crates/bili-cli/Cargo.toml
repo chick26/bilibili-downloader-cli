@@ -1,0 +1,22 @@
+[package]
+name = "bili-cli"
+version = "0.1.0"
+edition = "2024"
+license = "MIT"
+description = "Resumable Bilibili downloader for terminals and agents"
+
+[[bin]]
+name = "bili"
+path = "src/main.rs"
+
+[dependencies]
+bili-core = { path = "../bili-core" }
+clap = { version = "4", features = ["derive"] }
+eyre = "0.6.12"
+qrcode = { version = "0.14", default-features = false }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+tokio = { version = "1.46.0", features = ["full"] }
+tracing-subscriber = { version = "0.3.19", features = ["env-filter", "fmt"] }
+unicode-width = { version = "0.2", default-features = false }
+terminal_size = "0.4"
