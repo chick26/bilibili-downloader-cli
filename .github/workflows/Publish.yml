@@ -1,4 +1,4 @@
-name: Build CLI artifacts
+name: Build release packages
 
 on:
   workflow_dispatch:
@@ -7,27 +7,96 @@ permissions:
   contents: read
 
 jobs:
-  build-cli:
+  package:
     strategy:
       fail-fast: false
       matrix:
         include:
+          - runner: macos-15
+            platform: macos-arm64
+            target: aarch64-apple-darwin
+          - runner: macos-15-intel
+            platform: macos-x86_64
+            target: x86_64-apple-darwin
           - runner: ubuntu-24.04
-            binary: target/release/bili
-          - runner: windows-latest
-            binary: target/release/bili.exe
-          - runner: macos-latest
-            binary: target/release/bili
+            platform: linux-x86_64
+            target: x86_64-unknown-linux-musl
+          - runner: ubuntu-24.04-arm
+            platform: linux-arm64
+            target: aarch64-unknown-linux-musl
+          - runner: windows-2022
+            platform: windows-x86_64
+            target: x86_64-pc-windows-msvc
     runs-on: ${{ matrix.runner }}
+    env:
+      MACOSX_DEPLOYMENT_TARGET: "12.0"
     steps:
       - uses: actions/checkout@v4
-      - uses: dtolnay/rust-toolchain@1.88.0
-      - uses: Swatinem/rust-cache@v2
-      - name: Build CLI
-        run: cargo build --release -p bili-cli --locked
-      - name: Upload CLI binary
-        uses: actions/upload-artifact@v4
+      - uses: actions/setup-python@v5
         with:
-          name: bili-${{ runner.os }}-${{ runner.arch }}
-          path: ${{ matrix.binary }}
+          python-version: "3.13"
+      - uses: dtolnay/rust-toolchain@1.88.0
+        with:
+          targets: ${{ matrix.target }}
+      - uses: Swatinem/rust-cache@v2
+        with:
+          key: release-${{ matrix.target }}
+      - name: Linux static build tools
+        if: runner.os == 'Linux'
+        run: sudo apt-get update && sudo apt-get install -y musl-tools
+      - uses: msys2/setup-msys2@v2
+        if: runner.os == 'Windows'
+        with:
+          msystem: MINGW64
+          path-type: inherit
+          update: false
+          install: make mingw-w64-x86_64-gcc diffutils
+      - name: Fetch exact FFmpeg source
+        run: python scripts/release/fetch_ffmpeg.py
+      - name: Build standalone FFmpeg
+        if: runner.os != 'Windows'
+        run: bash scripts/release/build_ffmpeg.sh ${{ matrix.platform }}
+      - name: Build standalone FFmpeg on Windows
+        if: runner.os == 'Windows'
+        shell: msys2 {0}
+        env:
+          PYTHON: python
+        run: bash scripts/release/build_ffmpeg.sh ${{ matrix.platform }}
+      - name: Build CLI and package
+        env:
+          BILI_PLATFORM: ${{ matrix.platform }}
+          BILI_TARGET: ${{ matrix.target }}
+        run: python scripts/release/build_package.py
+      - name: Test extracted package without compiler or external FFmpeg on PATH
+        env:
+          BILI_PLATFORM: ${{ matrix.platform }}
+        run: python scripts/release/test_current_package.py
+      - uses: actions/upload-artifact@v4
+        with:
+          name: portable-${{ matrix.platform }}
+          path: |
+            dist/*.tar.gz
+            dist/*.zip
+            dist/*.sha256
+          if-no-files-found: error
+
+  assemble:
+    needs: package
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: portable-*
+          path: dist
+          merge-multiple: true
+      - run: python scripts/release/fetch_ffmpeg.py
+      - run: python scripts/release/assemble.py
+      - uses: actions/upload-artifact@v4
+        with:
+          name: release-packages
+          path: dist/*
           if-no-files-found: error

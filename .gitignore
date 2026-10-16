@@ -11,6 +11,9 @@ node_modules
 target/
 dist
 dist-ssr
+/build/
+__pycache__/
+*.pyc
 *.local
 
 # Editor directories and files

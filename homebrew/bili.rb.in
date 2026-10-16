@@ -1,0 +1,42 @@
+class Bili < Formula
+  desc "Resumable Bilibili CLI downloader with UID browsing and JSON output"
+  homepage "https://github.com/chick26/bilibili-downloader-cli"
+  version "@VERSION@"
+  license "MIT"
+
+  on_macos do
+    on_arm do
+      url "https://github.com/chick26/bilibili-downloader-cli/releases/download/v@VERSION@/bili-v@VERSION@-macos-arm64.tar.gz"
+      sha256 "@MACOS_ARM64_SHA256@"
+    end
+    on_intel do
+      url "https://github.com/chick26/bilibili-downloader-cli/releases/download/v@VERSION@/bili-v@VERSION@-macos-x86_64.tar.gz"
+      sha256 "@MACOS_X86_64_SHA256@"
+    end
+  end
+
+  on_linux do
+    on_arm do
+      url "https://github.com/chick26/bilibili-downloader-cli/releases/download/v@VERSION@/bili-v@VERSION@-linux-arm64.tar.gz"
+      sha256 "@LINUX_ARM64_SHA256@"
+    end
+    on_intel do
+      url "https://github.com/chick26/bilibili-downloader-cli/releases/download/v@VERSION@/bili-v@VERSION@-linux-x86_64.tar.gz"
+      sha256 "@LINUX_X86_64_SHA256@"
+    end
+  end
+
+  depends_on "ffmpeg"
+
+  def install
+    bin.install "bili"
+    doc.install "README.md", "UPSTREAM.md"
+    pkgshare.install "licenses"
+  end
+
+  test do
+    assert_match version.to_s, shell_output("#{bin}/bili --version")
+    response = JSON.parse(shell_output("#{bin}/bili --data-dir #{testpath}/state auth status --json"))
+    assert_equal true, response.fetch("ok")
+  end
+end

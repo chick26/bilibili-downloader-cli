@@ -4,7 +4,20 @@
 
 支持终端表格与 `--json` 机器可读输出。项目来源、上游基线和许可证说明见 [UPSTREAM.md](UPSTREAM.md)。
 
-## 构建与安装
+## 安装
+
+macOS / Linux 推荐使用 Homebrew：
+
+```sh
+brew install chick26/tap/bili
+bili --help
+```
+
+也可在 [Releases](https://github.com/chick26/bilibili-downloader-cli/releases/latest) 下载 macOS、Linux 或 Windows 的便携包。包内包含 `bili` 和 `ffmpeg`，解压后即可从终端使用，无需编译或安装 Rust。平台选择、首次运行和升级方法见 [安装说明](docs/INSTALL.md)。
+
+便携包随附 [FFmpeg](https://ffmpeg.org/) 独立程序，许可为 LGPL-2.1-or-later；同一 Release 提供对应 FFmpeg 完整源码，包内包含许可和构建方式。
+
+## 从源码构建
 
 需要 Rust 1.88.0 或更新版本及平台编译工具链。仓库的 `rust-toolchain.toml` 固定使用 1.88.0。Linux 构建还需要 OpenSSL 开发库和 pkg-config。
 
@@ -22,7 +35,7 @@ cargo install --path crates/bili-cli --locked
 bili --help
 ```
 
-合并音视频和嵌入章节需要另外安装 FFmpeg。查找顺序为 `--ffmpeg PATH` / 配置中的 `ffmpeg_path`、`bili` 同目录的 `ffmpeg`、系统 `PATH`。例如：
+从源码安装时，合并音视频和嵌入章节需要另外安装 FFmpeg。查找顺序为 `--ffmpeg PATH` / 配置中的 `ffmpeg_path`、`bili` 同目录的 `ffmpeg`、系统 `PATH`。例如：
 
 ```bash
 bili --ffmpeg /opt/homebrew/bin/ffmpeg download BV1xx411c7mD --no-extras

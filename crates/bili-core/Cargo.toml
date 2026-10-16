@@ -5,6 +5,9 @@ description = "Reusable headless Bilibili download engine"
 edition = "2024"
 license = "MIT"
 
+[features]
+vendored-openssl = ["reqwest/native-tls-vendored"]
+
 [dependencies]
 dlopen2 = "0.8.2"
 bilibili-video-downloader-plugin-api = { path = "../bili-plugin-api" }

@@ -1,0 +1,8 @@
+{
+  "Inflector-0.11.4": "https://raw.githubusercontent.com/whatisinternet/inflector/a4a95eac75043f4bffb127c7c8ec886b5b106053/LICENSE.md",
+  "dlopen2-0.8.2": "https://raw.githubusercontent.com/OpenByteDev/dlopen2/cc80e4a0a90d499b677fdf7743699b4b3a43a989/LICENSE",
+  "specta-2.0.0-rc.20": "https://raw.githubusercontent.com/oscartbeaumont/specta/9da887a7f667d301d997dbbf528dcac5031bc721/LICENSE",
+  "specta-macros-2.0.0-rc.17": "https://raw.githubusercontent.com/oscartbeaumont/specta/607ac2925c406066d4bfa32b95ce82b73c88bd44/LICENSE",
+  "yaserde-0.12.0": "https://raw.githubusercontent.com/media-io/yaserde/2018ee5d7092ef0a00c4219a9e439997618aacab/LICENSE",
+  "yaserde_derive-0.12.0": "https://raw.githubusercontent.com/media-io/yaserde/2018ee5d7092ef0a00c4219a9e439997618aacab/LICENSE"
+}
